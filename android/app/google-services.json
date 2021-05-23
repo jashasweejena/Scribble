@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "9469530525",
+    "project_id": "scribbl-62668",
+    "storage_bucket": "scribbl-62668.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:9469530525:android:94a0211a202fcaf09b1f74",
+        "android_client_info": {
+          "package_name": "com.example.scribbl_clone"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "9469530525-hsk944cnhhfp0653pgthqbvofud7boun.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.scribbl_clone",
+            "certificate_hash": "87fffac1f72287775ca3f9861f68adbc3f6ec64f"
+          }
+        },
+        {
+          "client_id": "9469530525-2rmcjqin41jusnogb428sak31bpclruh.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBXM52dGOx38blGrEgfSl5Cq7umUJonONQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "9469530525-2rmcjqin41jusnogb428sak31bpclruh.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
