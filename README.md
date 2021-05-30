@@ -8,9 +8,9 @@ A clone of scribbl.io in Flutter
 
 TODO List:- 
 - [x] <del> Create a canvas to draw </del>
-- [x] User can choose color
-- [x] Use can select brush width
-- [x] Erase all button
+- [x] <del> User can choose color </del>
+- [x] <del> Use can select brush width </del>
+- [x] <del> Erase all button </del>
 - [ ]  Add multi-user support
 - [ ]  Migrate to Bloc
 - [ ]  Add link generate functionality for multiple users
