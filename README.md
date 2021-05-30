@@ -1,16 +1,16 @@
-# scribbl_clone
+# Scribble
 
-A new Flutter project.
+A clone of scribbl.io in Flutter
 
-## Getting Started
+![device-2021-05-28-035949](https://user-images.githubusercontent.com/20218197/119905146-441aa400-bf69-11eb-8478-8099a4b3a793.png)
 
-This project is a starting point for a Flutter application.
 
-A few resources to get you started if this is your first Flutter project:
 
-- [Lab: Write your first Flutter app](https://flutter.dev/docs/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://flutter.dev/docs/cookbook)
-
-For help getting started with Flutter, view our
-[online documentation](https://flutter.dev/docs), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+TODO List:- 
+- [x] <del> Create a canvas to draw </del>
+- [x] User can choose color
+- [x] Use can select brush width
+- [x] Erase all button
+- [ ]  Add multi-user support
+- [ ]  Migrate to Bloc
+- [ ]  Add link generate functionality for multiple users
