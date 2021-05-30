@@ -2,7 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
+import 'package:scribbl_clone/firestore_object.dart';
 import 'package:scribbl_clone/paint_data.dart';
+import 'color_extensions.dart';
 
 import 'custom_painter.dart';
 
@@ -39,15 +41,31 @@ class _MyHomePageState extends State<MyHomePage> {
   Color selectedColor;
   double strokeWidth;
 
-  bool _readOnly = false;
-
+  bool _canDraw = true;
+  bool _progressBarVisible = false;
   FirebaseFirestore firestore;
+
+  int serialNumber = 0;
+
+  bool observeFirebase = false;
+
+  CollectionReference<FirestoreData> reference;
+  CollectionReference resetButtonReference;
 
   @override
   void initState() {
     selectedColor = Colors.black;
     strokeWidth = 2.0;
     firestore = FirebaseFirestore.instance;
+    reference = firestore.collection('points5').withConverter(
+      fromFirestore: (snapshot, _) {
+        return FirestoreData.fromJson(snapshot.data());
+      },
+      toFirestore: (data, _) {
+        return data.toJson();
+      },
+    );
+    resetButtonReference = firestore.collection('resetbutton');
     super.initState();
   }
 
@@ -84,10 +102,109 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  void showProgressBar() {
+    _progressBarVisible = true;
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(
+                height: 12.0,
+              ),
+              Text("Loading..."),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void hideProgressBar() {
+    if (_progressBarVisible) Navigator.of(context).pop();
+  }
+
+  void uploadPointsToFirestore(FirestoreData firestoreData) {
+    if (_canDraw) {
+      if (firestoreData != null) {
+        // reference.add(firestoreData);
+        print('Uploading data: ${firestoreData.dx} ${firestoreData.dy}');
+        reference.add(firestoreData);
+      } else {
+        reference.add(
+            FirestoreData(dx: null, dy: null, color: null, strokeWidth: null));
+      }
+    }
+  }
+
+  Future<void> clearFirestore() async{
+      showProgressBar();
+      await resetButtonReference.doc('is_reset').update({'is_reset': FieldValue.increment(1)});
+      WriteBatch batch = FirebaseFirestore.instance.batch();
+      var snapshot = await reference.get();
+      if (snapshot.docs.length >= 500) {
+        for(DocumentSnapshot ds in snapshot.docs) {
+          await ds.reference.delete();
+        }
+      }
+      else {
+        for(DocumentSnapshot ds in snapshot.docs) {
+           batch.delete(ds.reference);
+        }
+      }
+
+      hideProgressBar();
+  }
+
+  void observeFirestore() {
+    if (!_canDraw) { // It cannot draw, now observe
+      clearAll();
+
+      resetButtonReference.snapshots().listen((snapshot) {
+        print(snapshot.docChanges.toString());
+        int shouldClear = snapshot.docs[0].get('is_reset') as int;
+        if (shouldClear != null) {
+          clearAll();
+        }
+      });
+
+      reference.snapshots().listen((snapshot) {
+        for (DocumentChange<FirestoreData> doc in snapshot.docChanges) {
+            print("change recd");
+            setState(() {
+
+              FirestoreData data = doc.doc.data();
+
+              if (data.dx != null && data.dy != null && data.color != null && data.strokeWidth != null) {
+                Paint paint = Paint();
+                paint..color = data.color.getColorFromValueString();
+                paint..strokeWidth = strokeWidth;
+                paint..isAntiAlias = true;
+                paint..strokeCap = StrokeCap.round;
+
+                ColoredPaint obj =
+                    ColoredPaint(offset: Offset(data.dx, data.dy), paint: paint);
+                points.add(obj);
+            }
+              else {
+                points.add(null);
+              }
+              // print(points);
+          });
+          }
+        });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final double width = MediaQuery.of(context).size.width;
     final double height = MediaQuery.of(context).size.height;
+
+    CollectionReference pointsCollection = firestore.collection('points');
 
     return Scaffold(
       body: Stack(
@@ -111,7 +228,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   width: width * 0.80,
                   height: height * 0.80,
                   child: AbsorbPointer(
-                    absorbing: !_readOnly,
+                    absorbing: !_canDraw,
                     child: GestureDetector(
                       onPanDown: (details) {
                         this.setState(() {
@@ -125,18 +242,30 @@ class _MyHomePageState extends State<MyHomePage> {
                         });
                       },
                       onPanUpdate: (details) {
+                        FirestoreData data = FirestoreData(
+                            dx: details.localPosition.dx,
+                            dy: details.localPosition.dy,
+                            color: selectedColor.getValueStringFromColor(),
+                            strokeWidth: strokeWidth);
+                        Offset offset = details.localPosition;
+                        // print(offset);
+                        uploadPointsToFirestore(data);
                         this.setState(() {
                           Paint paint = Paint();
                           paint..color = selectedColor;
                           paint..strokeWidth = strokeWidth;
                           paint.isAntiAlias = true;
                           paint.strokeCap = StrokeCap.round;
+                          // print(selectedColor.value);
                           points.add(ColoredPaint(
                               offset: details.localPosition, paint: paint));
                         });
                       },
                       onPanEnd: (details) {
-                        points.add(null);
+                        uploadPointsToFirestore(null);
+                        setState(() {
+                          points.add(null);
+                        });
                       },
                       child: ClipRRect(
                         borderRadius: BorderRadius.all(Radius.circular(20.0)),
@@ -194,7 +323,10 @@ class _MyHomePageState extends State<MyHomePage> {
                         ),
                       ),
                       IconButton(
-                          icon: Icon(Icons.layers_clear), onPressed: clearAll)
+                          icon: Icon(Icons.layers_clear), onPressed: (){
+                            clearAll();
+                            clearFirestore();
+                          },)
                     ],
                   ),
                 )
@@ -204,18 +336,28 @@ class _MyHomePageState extends State<MyHomePage> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        child: Icon(_readOnly ? Icons.visibility_off : Icons.visibility),
+        child: Icon(_canDraw ? Icons.visibility_off : Icons.visibility),
         onPressed: () {
-          setState(() {
-            _readOnly = !_readOnly;
-          });
-          if (_readOnly) {
+
+
+          if (_canDraw) {
+            setState(() {
+              _canDraw = false;
+            });
+            SnackBar snackBar =
+            SnackBar(content: Text("Read only mode, Cannot Draw"));
+            ScaffoldMessenger.of(context).showSnackBar(snackBar);
+            // observeFirebase = true;
+            observeFirestore();
+          } else {
+            setState(() {
+              _canDraw = true;
+            });
             SnackBar snackBar = SnackBar(content: Text("Can Draw"));
             ScaffoldMessenger.of(context).showSnackBar(snackBar);
-          } else {
-            SnackBar snackBar =
-                SnackBar(content: Text("Read only mode, Cannot Draw"));
-            ScaffoldMessenger.of(context).showSnackBar(snackBar);
+            // observeFirebase = false;
+            observeFirestore();
+
           }
         },
       ),
